@@ -1,0 +1,66 @@
+####
+# ATENTION:
+# Replace all occurences of senhoradasgracas with your project's name
+####
+
+# v2 syntax
+version: '2'
+
+# Named volumes
+volumes:
+  # MySQL Data
+  senhoradasgracas-mysql-data:
+    driver: local
+
+  # Redis Data
+  senhoradasgracas-redis-data:
+    driver: local
+
+services:
+  # MySQL (5.7)
+  mysql:
+    image: mysql:5.7
+    container_name: senhoradasgracas-mysql
+    volumes:
+      - senhoradasgracas-mysql-data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=senhoradasgracas
+      - MYSQL_DATABASE=senhoradasgracas
+      - MYSQL_USER=senhoradasgracas
+      - MYSQL_PASSWORD=senhoradasgracas
+
+  # Redis
+  cache:
+    image: redis:4.0
+    container_name: senhoradasgracas-redis
+    command: --appendonly yes
+    volumes:
+      - senhoradasgracas-redis-data:/data
+    ports:
+      - "6379:6379"
+
+  # PHP (with Nginx)
+  # you can change from nginx to apache, just change session 'image'
+  app:
+    image: ambientum/php:7.2-nginx
+    container_name: senhoradasgracas-app
+    volumes:
+      - .:/var/www/app
+    ports:
+      - "80:8080"
+    links:
+      - mysql
+      - cache
+
+  # Laravel Queues
+  queue:
+    image: ambientum/php:7.2
+    container_name: senhoradasgracas-queue
+    command: php artisan queue:listen
+    volumes:
+      - .:/var/www/app
+    links:
+      - mysql
+      - cache
